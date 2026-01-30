@@ -1,0 +1,12 @@
+$background-color: #f08080;
+$primary-color: #007bff;
+$secondary-color: #6c757d;
+
+html, body {
+	width: 100dvw;
+	height: 100dvh;
+}
+
+body, #root {
+	background-color: $background-color;
+}
