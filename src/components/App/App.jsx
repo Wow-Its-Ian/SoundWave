@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import * as Tone from "tone";
+import * as Tone from 'tone';
 import '../../scss/index.scss';
 
 const scaleC = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+const scaleKeyboard = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const scales = {
+	KEYBOARD: scaleKeyboard,
 	C: scaleC
 };
 
@@ -15,7 +17,7 @@ function App() {
 
 	const [synth, setSynth] = useState(null);
 	const [toneStarted, setToneStarted] = useState(false);
-	const [playingScale, setPlayingScale] = useState(scales.C);
+	const [playingScale, setPlayingScale] = useState(scales.KEYBOARD);
 	const [playingOctave, setPlayingOctave] = useState(4);
 
 	function playNote(note) {
@@ -30,9 +32,9 @@ function App() {
 
 		const now = Tone.now();
 
-		synth.triggerAttackRelease(note, "1n", now);
-		synth.triggerAttackRelease(noteChange({note: note, change: 2}), "1n", now);
-		synth.triggerAttackRelease(noteChange({note: note, change: 4}), "1n", now);
+		synth.triggerAttackRelease(note, '4n', now);
+		// synth.triggerAttackRelease(noteChange({note: note, change: 2}), '4n', now);
+		// synth.triggerAttackRelease(noteChange({note: note, change: 4}), '4n', now);
 	}
 
 	function noteChange({scale = playingScale, note, change}) {
@@ -44,31 +46,40 @@ function App() {
 
 		const [scaleNote, octave] = note.split('');
 		const octaveNumber = parseInt(octave);
+		const indexAfterChange = (scale.indexOf(scaleNote) + change);
+		const octaveChange = Math.floor(indexAfterChange / scale.length);
+		const loopedIndex = (scale.indexOf(scaleNote) + change) % scale.length;
+		const newNote = scale[loopedIndex] + (octaveNumber + octaveChange);
 
-		const octaveChange = Math.floor(change / playingScale.length);
-
-		const loopedIndex = (playingScale.indexOf(scaleNote) + change) % playingScale.length;
-
-		const newNote = playingScale[loopedIndex] + (octaveNumber + octaveChange);
-		console.log('newNote: ', newNote);
 		return newNote;
 	}
 
 	return (
-		<div>
-			{
+		<div className="container">
+			<div className="intro-container">
+				<h1>SoundWave</h1>
+				<h3>So far, just a keyboard</h3>
+			</div>
 
-				playingScale?.map((note, index) => {
-					let noteToPlay = `${playingScale[index]}${playingOctave}`;
-					console.log('noteToPlay: ', noteToPlay);
-
-					return (
-						<button key={noteToPlay} onClick={() => playNote(noteToPlay)}>{noteToPlay}</button>
-					);
-				})
-			}
-	
-			<button onClick={() => playNote(playingScale[0] + (playingOctave + 1))}>{playingScale[0] + (playingOctave + 1)}</button>
+			<div className="piano-container">
+				<div className='piano-keys-list'>
+					{
+						playingScale?.map((note, index) => {
+							let noteToPlay = `${playingScale[index]}${playingOctave}`;
+							
+							return (
+								<button className={`piano-keys ${noteToPlay.includes('#') ? 'black-key' : 'white-key'}`} key={noteToPlay} onClick={() => playNote(noteToPlay)}>
+									<div className="note-name">{noteToPlay}</div>
+								</button>
+							);
+						})
+					}
+			
+					<button className={`piano-keys ${playingScale[0].includes('#') ? 'black-key' : 'white-key'}`} onClick={() => playNote(playingScale[0] + (playingOctave + 1))}>
+						<div className="note-name">{playingScale[0] + (playingOctave + 1)}</div>
+					</button>
+				</div>
+			</div>
 		</div>
 	);
 }

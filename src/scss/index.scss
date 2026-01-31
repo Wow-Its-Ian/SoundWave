@@ -1,5 +1,6 @@
 @use './reset/reset.scss' as *;
 @use './default/default.scss' as *;
+@use './components/keyboard/keyboard.scss' as *;
 
 #root {
 	width: 100%;
