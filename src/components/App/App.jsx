@@ -1,27 +1,108 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useEffectEvent } from 'react';
 import * as Tone from 'tone';
 import '../../scss/index.scss';
 
 const scaleC = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 const scaleKeyboard = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+const keyboardToPiano = {
+	// WHITE KEYS
+	z: 'C',
+	x: 'D',
+	c: 'E',
+	v: 'F',
+	b: 'G',
+	n: 'A',
+	m: 'B',
+	// BLACK KEYS
+	s: 'C#',
+	d: 'D#',
+	g: 'F#',
+	h: 'G#',
+	j: 'A#',
+};
+
 const scales = {
 	KEYBOARD: scaleKeyboard,
 	C: scaleC
 };
 
-function App() {
+const App = () => {
 	useEffect(() => {
 		const newSynth = new Tone.PolySynth(Tone.Synth).toDestination();
 		setSynth(newSynth);
 	}, []);
 
+	useEffect(() => {
+		// Add the event listener when the component mounts
+		document.addEventListener('keydown', handleKeyDown);
+
+		// Add the event listener when the component mounts
+		document.addEventListener('keyup', handleKeyUp);
+
+		// Remove the event listener when the component unmounts (cleanup)
+		return () => {
+			document.removeEventListener('keydown', handleKeyDown);
+			document.removeEventListener('keyup', handleKeyUp);
+		};
+  }, [handleKeyDown, handleKeyUp]); // Re-run effect only if handleKeyDown or handleKeyUp changes
+
 	const [synth, setSynth] = useState(null);
 	const [toneStarted, setToneStarted] = useState(false);
 	const [playingScale, setPlayingScale] = useState(scales.KEYBOARD);
 	const [playingOctave, setPlayingOctave] = useState(4);
+	const [playingNotes, setPlayingNotes] = useState([]);
 
-	function playNote(note) {
+	const handleKeyDown = useEffectEvent((event) => {
+		if (keyboardToPiano[event.key]) {
+			const note = `${keyboardToPiano[event.key]}${playingOctave}`;
+
+			if(playingNotes.includes(note)) {
+				return;
+			}
+
+			startNote(note);
+		} else if(event.key === ',') {
+			const note = `${playingScale[0]}${playingOctave + 1}`;
+
+			if(playingNotes.includes(note)) {
+				return;
+			}
+
+			startNote(note);
+		} else if(event.key === 'ArrowUp') {
+			stopAllNotes();
+
+			if(playingOctave < 8) {
+				setPlayingOctave(playingOctave + 1);
+			}
+		} else if(event.key === 'ArrowDown') {
+			stopAllNotes();
+
+			if(playingOctave > 1) {
+				setPlayingOctave(playingOctave - 1);
+			}
+		} else if(parseInt(event.key) && parseInt(event.key) > 0 && parseInt(event.key) < 9) {
+			setPlayingOctave(parseInt(event.key));
+		}
+	}, []); // Use useCallback for a stable function reference
+
+	const handleKeyUp = useEffectEvent((event) => {
+		if (keyboardToPiano[event.key]) {
+			const note = `${keyboardToPiano[event.key]}${playingOctave}`;
+			stopNote(note);
+		} else if(event.key === ',') {
+			const note = `${playingScale[0]}${playingOctave + 1}`;
+			stopNote(note);
+		}
+	}, []);
+
+	const playNote = (note) => {
 		if(!synth) {
+			return;
+		}
+
+		if(playingNotes.includes(note)) {
 			return;
 		}
 
@@ -35,9 +116,44 @@ function App() {
 		synth.triggerAttackRelease(note, '4n', now);
 		// synth.triggerAttackRelease(noteChange({note: note, change: 2}), '4n', now);
 		// synth.triggerAttackRelease(noteChange({note: note, change: 4}), '4n', now);
-	}
 
-	function noteChange({scale = playingScale, note, change}) {
+		setPlayingNotes([...playingNotes, note]);
+	};
+
+	const startNote = (note) => {
+		if(!synth) {
+			return;
+		}
+
+		if(playingNotes.includes(note)) {
+			return;
+		}
+
+		if(!toneStarted) {
+			Tone.start();
+			setToneStarted(true);
+		}
+
+		const now = Tone.now();
+		synth.triggerAttackRelease(note, now);
+
+		setPlayingNotes([...playingNotes, note]);
+	};
+
+	const stopNote = (note) => {
+		const now = Tone.now();
+		synth.triggerRelease(note, now);
+
+		setPlayingNotes(playingNotes.filter((playingNote) => playingNote !== note));
+	};
+
+	const stopAllNotes = () => {
+		playingNotes.forEach((note) => {
+			stopNote(note);
+		});
+	};
+
+	const noteChange = ({scale = playingScale, note, change}) => {
 		if(!note || !change) {
 			console.log('no note or change');
 
@@ -52,7 +168,7 @@ function App() {
 		const newNote = scale[loopedIndex] + (octaveNumber + octaveChange);
 
 		return newNote;
-	}
+	};
 
 	return (
 		<div className="container">
@@ -82,6 +198,6 @@ function App() {
 			</div>
 		</div>
 	);
-}
+};
 
 export default App;
